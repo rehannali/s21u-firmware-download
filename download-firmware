@@ -1,0 +1,61 @@
+#!/bin/bash
+
+DEVICE="Enter you device Model"
+REGION="Enter your Device Region"
+BASE="samloader -m $DEVICE -r $REGION"
+
+echo "Checking samloader existance..."
+
+if ! command -v samloader &> /dev/null; then
+	echo "samloader not found. Downloading..."
+	pip3 install git+https://github.com/nlscc/samloader.git
+fi
+
+echo "Checking Version"
+
+VERSION="$($BASE checkupdate)"
+
+echo "$VERSION"
+
+echo -e "Checking Completed \n"
+
+read -p 'Do you want to Continue? Press y or Y to continue: ' cont
+
+if [ $cont != "y" ] && [ $cont != "Y" ]; then
+	echo "Exiting From Program"
+	exit 1
+fi
+
+echo "Purging OLD files if exists ..."
+
+find . -iname "$DEVICE*" -exec rm -rf {} +
+
+echo "Downloading Firmware ..."
+
+FILENAME="$($BASE download -v $VERSION -O . | cut -d ' ' -f2)"
+
+echo "Downloading Finished ..."
+
+OUTPUT="$(echo $FILENAME | cut -d . -f1-2)"
+ENC_PROTOCOL="$(echo $FILENAME | tail -c 2)"
+
+echo "File Name : $FILENAME"
+echo "Output Name : $OUTPUT"
+echo "ENC Protocol : $ENC_PROTOCOL"
+
+echo "Decrypting ..."
+
+$BASE decrypt -v $VERSION -V $ENC_PROTOCOL -i $FILENAME -o $OUTPUT
+
+echo "Decrypting Finished ..."
+
+UNZIPDIR="$(echo $OUTPUT | cut -d . -f1)"
+
+echo "UNZIP Dir : $UNZIPDIR"
+
+echo "unzipping firmware ..."
+
+unzip $OUTPUT -d $UNZIPDIR/
+
+echo "Done!"
+exit 0
